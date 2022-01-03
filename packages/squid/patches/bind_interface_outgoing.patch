@@ -1,0 +1,242 @@
+  Allow to specify an interface to bind outgoing sockets to. Example:
+
+    tcp_outgoing_address 192.0.2.36%eth2
+    udp_outgoing_address 192.0.2.36%eth2
+
+diff -ruN squid-5.3.orig/src/cache_cf.cc squid-5.3/src/cache_cf.cc
+--- squid-5.3.orig/src/cache_cf.cc	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/cache_cf.cc	2022-01-03 11:49:12.398564315 +0300
+@@ -1497,7 +1497,11 @@
+     else if (addr->GetHostByName(token)) // do not use ipcache
+         (void) 0;
+     else { // not an IP and not a hostname
+-        debugs(3, DBG_CRITICAL, "FATAL: invalid IP address or domain name '" << token << "'");
++        const char *idx = strchr(token, '%');
++        if (idx)
++            debugs(3, DBG_CRITICAL, "FATAL: invalid interface name '" << idx+1 << "'");
++        else
++            debugs(3, DBG_CRITICAL, "FATAL: invalid IP address or domain name '" << token << "'");
+         self_destruct();
+     }
+ }
+diff -ruN squid-5.3.orig/src/comm.cc squid-5.3/src/comm.cc
+--- squid-5.3.orig/src/comm.cc	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/comm.cc	2022-01-03 11:04:38.251637676 +0300
+@@ -461,6 +461,15 @@
+             commSetReuseAddr(new_socket);
+     }
+ 
++    if (addr.interface() != NULL) {
++        if (setsockopt(new_socket, SOL_SOCKET, SO_BINDTODEVICE, addr.interface(), strlen(addr.interface())+1) < 0) {
++            const auto savedErrno = errno;
++            const auto errorMessage = ToSBuf("cannot bind socket to interface ", addr.interface(), ": ", xstrerr(savedErrno));
++            debugs(5, DBG_CRITICAL, "CRITICAL: " << errorMessage);
++            return -1;
++        }
++    }
++
+     /* MUST be done before binding or face OS Error: "(99) Cannot assign requested address"... */
+     if ((flags & COMM_TRANSPARENT)) {
+         comm_set_transparent(new_socket);
+diff -ruN squid-5.3.orig/src/ip/Address.cc squid-5.3/src/ip/Address.cc
+--- squid-5.3.orig/src/ip/Address.cc	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/ip/Address.cc	2022-01-03 11:38:28.084866445 +0300
+@@ -179,11 +179,19 @@
+     memset(&mSocketAddr_.sin6_addr, 0, sizeof(struct in6_addr) );
+ }
+ 
++void
++Ip::Address::initEmpty()
++{
++    interface_ = NULL;
++    setEmpty();
++}
++
+ /// NOTE: completely empties the Ip::Address structure. Address, Port, Type, everything.
+ void
+ Ip::Address::setEmpty()
+ {
+     memset(&mSocketAddr_, 0, sizeof(mSocketAddr_) );
++    safe_free(interface_);
+ }
+ 
+ #if _SQUID_AIX_
+@@ -358,20 +366,38 @@
+ 
+ Ip::Address::Address(const char*s)
+ {
+-    setEmpty();
+-    lookupHostIP(s, true);
++    initEmpty();
++    lookupHostIPMayBeInterface(s, true);
+ }
+ 
+ bool
+ Ip::Address::operator =(const char* s)
+ {
+-    return lookupHostIP(s, true);
++    return lookupHostIPMayBeInterface(s, true);
+ }
+ 
+ bool
+ Ip::Address::GetHostByName(const char* s)
+ {
+-    return lookupHostIP(s, false);
++    return lookupHostIPMayBeInterface(s, false);
++}
++
++bool
++Ip::Address::lookupHostIPMayBeInterface(const char *s, bool nodns)
++{
++    bool ret;
++    const char *idx = strchr(s, '%');
++    if (idx != NULL) {
++        if (!interface(idx+1)) {
++            return false;
++        }
++        const char *tmp = xstrndup(s, idx-s+1);
++        ret = lookupHostIP(tmp, nodns);
++        safe_free(tmp);
++    } else {
++      ret = lookupHostIP(s, nodns);
++    }
++    return ret;
+ }
+ 
+ bool
+@@ -422,7 +448,7 @@
+ 
+ Ip::Address::Address(struct sockaddr_in const &s)
+ {
+-    setEmpty();
++    initEmpty();
+     operator=(s);
+ };
+ 
+@@ -451,7 +477,7 @@
+ 
+ Ip::Address::Address(struct sockaddr_in6 const &s)
+ {
+-    setEmpty();
++    initEmpty();
+     operator=(s);
+ };
+ 
+@@ -464,7 +490,7 @@
+ 
+ Ip::Address::Address(struct in_addr const &s)
+ {
+-    setEmpty();
++    initEmpty();
+     operator=(s);
+ };
+ 
+@@ -478,7 +504,7 @@
+ 
+ Ip::Address::Address(struct in6_addr const &s)
+ {
+-    setEmpty();
++    initEmpty();
+     operator=(s);
+ };
+ 
+@@ -493,7 +519,7 @@
+ 
+ Ip::Address::Address(const struct hostent &s)
+ {
+-    setEmpty();
++    initEmpty();
+     operator=(s);
+ }
+ 
+@@ -537,7 +563,7 @@
+ 
+ Ip::Address::Address(const struct addrinfo &s)
+ {
+-    setEmpty();
++    initEmpty();
+     operator=(s);
+ }
+ 
+@@ -789,6 +815,30 @@
+ }
+ 
+ char *
++Ip::Address::interface() const
++{
++    return interface_;
++}
++
++bool
++Ip::Address::interface(const char *iface)
++{
++    if (iface == NULL) {
++        safe_free(interface_);
++        return true;
++    }
++
++    if (!if_nametoindex(iface)) {
++        const auto savedErrno = errno;
++        debugs(14, DBG_CRITICAL, "CRITICAL: " << "unable to find interface " << iface << ": " << xstrerr(savedErrno));
++        return false;
++    }
++
++    interface_ = xstrdup(iface);
++    return true;
++}
++
++char *
+ Ip::Address::toStr(char* buf, const unsigned int blen, int force) const
+ {
+     // Ensure we have a buffer.
+diff -ruN squid-5.3.orig/src/ip/Address.h squid-5.3/src/ip/Address.h
+--- squid-5.3.orig/src/ip/Address.h	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/ip/Address.h	2022-01-03 11:32:06.305520178 +0300
+@@ -15,6 +15,7 @@
+ 
+ #include <iosfwd>
+ #include <ostream>
++#include <net/if.h>
+ #if HAVE_SYS_SOCKET_H
+ #include <sys/socket.h>
+ #endif
+@@ -43,7 +44,7 @@
+ public:
+     /** @name Constructors */
+     /*@{*/
+-    Address() { setEmpty(); }
++    Address() { initEmpty(); }
+     Address(const struct in_addr &);
+     Address(const struct sockaddr_in &);
+     Address(const struct in6_addr &);
+@@ -149,6 +150,9 @@
+      */
+     unsigned short port(unsigned short port);
+ 
++    char *interface() const;
++    bool interface(const char *);
++
+     /// Set object to contain the specific IP case ANY_ADDR (format-neutral).
+     /// see isAnyAddr() for more detail.
+     void setAnyAddr();
+@@ -315,6 +319,8 @@
+     void getInAddr(struct in6_addr &) const;
+ 
+ private:
++    void initEmpty();
++
+     /* Conversion for dual-type internals */
+ 
+     bool getReverseString4(char buf[MAX_IPSTRLEN], const struct in_addr &dat) const;
+@@ -327,9 +333,11 @@
+ 
+     // Worker behind GetHostName and char* converters
+     bool lookupHostIP(const char *s, bool nodns);
++    bool lookupHostIPMayBeInterface(const char *s, bool nodns);
+ 
+     /* variables */
+     struct sockaddr_in6 mSocketAddr_;
++    char *interface_;
+ 
+ private:
+     /* Internally used constants */

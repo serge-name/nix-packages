@@ -1,0 +1,37 @@
+  Allow to use '-' and '_' in a service name defined by '-n' command line option.
+
+diff -ruN squid-5.3.orig/src/base/CharacterSet.cc squid-5.3/src/base/CharacterSet.cc
+--- squid-5.3.orig/src/base/CharacterSet.cc	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/base/CharacterSet.cc	2022-01-03 08:51:01.412977329 +0300
+@@ -140,6 +140,7 @@
+              CharacterSet::BIT("BIT","01"),
+              CharacterSet::CR("CR","\r"),
+ CharacterSet::CTL("CTL", {{0x01,0x1f},{0x7f,0x7f}}),
++CharacterSet::DASH("DASH","-_"),
+ CharacterSet::DIGIT("DIGIT","0123456789"),
+ CharacterSet::DQUOTE("DQUOTE","\""),
+ CharacterSet::HEXDIG("HEXDIG","0123456789aAbBcCdDeEfF"),
+diff -ruN squid-5.3.orig/src/base/CharacterSet.h squid-5.3/src/base/CharacterSet.h
+--- squid-5.3.orig/src/base/CharacterSet.h	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/base/CharacterSet.h	2022-01-03 08:50:19.448600579 +0300
+@@ -80,6 +80,8 @@
+     static const CharacterSet CR;
+     // controls
+     static const CharacterSet CTL;
++    // '-' and '_'
++    static const CharacterSet DASH;
+     // 0-9
+     static const CharacterSet DIGIT;
+     // double quote
+diff -ruN squid-5.3.orig/src/main.cc squid-5.3/src/main.cc
+--- squid-5.3.orig/src/main.cc	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/main.cc	2022-01-03 08:51:27.785214192 +0300
+@@ -611,7 +611,7 @@
+         if (optValue && *optValue != '\0') {
+             const SBuf t(optValue);
+             ::Parser::Tokenizer tok(t);
+-            const CharacterSet chr = CharacterSet::ALPHA+CharacterSet::DIGIT;
++            const CharacterSet chr = CharacterSet::ALPHA+CharacterSet::DIGIT+CharacterSet::DASH;
+             if (!tok.prefix(service_name, chr))
+                 fatalf("Expected alphanumeric service name for the -n option but got: %s", optValue);
+             if (!tok.atEnd())

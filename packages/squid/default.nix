@@ -38,6 +38,11 @@ pkgs.stdenv.mkDerivation rec {
     "--enable-linux-netfilter"
   ];
 
+  patches = [
+    patches/bind_interface_outgoing.patch
+    patches/service_name.patch
+  ];
+
   enableParallelBuilding = true;
 
   meta = {

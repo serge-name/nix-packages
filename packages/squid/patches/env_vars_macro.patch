@@ -1,0 +1,76 @@
+  Adds 4 macros being substituted with corresponding environment variables. That variables are
+  set by systemd. Examples:
+
+    acl baddomains dstdomain -n "${CONFIGURATION_DIRECTORY}/acl/baddomains_adv"
+    coredump_dir ${STATE_DIRECTORY}
+    pid_filename ${RUNTIME_DIRECTORY}/squid.pid
+    cache_log ${LOGS_DIRECTORY}/cache.log
+
+diff -ruN squid-5.3.orig/src/cache_cf.cc squid-5.3/src/cache_cf.cc
+--- squid-5.3.orig/src/cache_cf.cc	2021-12-07 17:15:52.000000000 +0300
++++ squid-5.3/src/cache_cf.cc	2022-01-03 13:25:39.223256388 +0300
+@@ -347,6 +347,34 @@
+         ReplaceSubstr(line, len, macroPos - line, macroNameLen, substStr);
+ }
+ 
++static bool
++SubstituteMacroEnvVar(char*& line, int& len, const char* envVarName)
++{
++    assert(line != NULL);
++    assert(envVarName != NULL);
++    char *macroName = (char*)xmalloc(strlen(envVarName)+4);
++    strcpy(macroName, "${");
++    strcpy(macroName+2, envVarName);
++    strcpy(macroName+2+strlen(envVarName), "}");
++    unsigned macroNameLen = strlen(macroName);
++
++    char *value = getenv(envVarName);
++    unsigned valueLen = 0;
++    if (value != NULL) {
++        valueLen = strlen(value);
++    }
++    while (const char* macroPos = strstr(line, macroName)) { // we would replace all occurrences
++        if ((value == NULL) || (valueLen == 0)) {
++            debugs(3, DBG_CRITICAL, "CRITICAL: environment variable " << envVarName << " is not set.");
++            safe_free(macroName);
++            return false;
++        }
++        ReplaceSubstr(line, len, macroPos - line, macroNameLen, value);
++    }
++    safe_free(macroName);
++    return true;
++}
++
+ static void
+ ProcessMacros(char*& line, int& len)
+ {
+@@ -355,6 +383,19 @@
+     SubstituteMacro(line, len, "${process_number}", xitoa(KidIdentifier));
+ }
+ 
++static bool
++ProcessMacrosEnvVar(char*& line, int& len)
++{
++    // systemd environment variables
++    if (!SubstituteMacroEnvVar(line, len, "CONFIGURATION_DIRECTORY")
++        || !SubstituteMacroEnvVar(line, len, "LOGS_DIRECTORY")
++        || !SubstituteMacroEnvVar(line, len, "RUNTIME_DIRECTORY")
++        || !SubstituteMacroEnvVar(line, len, "STATE_DIRECTORY")) {
++        return false;
++    }
++    return true;
++}
++
+ static void
+ trim_trailing_ws(char* str)
+ {
+@@ -530,6 +571,9 @@
+ 
+         trim_trailing_ws(tmp_line);
+         ProcessMacros(tmp_line, tmp_line_len);
++        if (!ProcessMacrosEnvVar(tmp_line, tmp_line_len)) {
++            self_destruct();
++        }
+         debugs(3, (opt_parse_cfg_only?1:5), "Processing: " << tmp_line);
+ 
+         if (const char* expr = FindStatement(tmp_line, "if")) {

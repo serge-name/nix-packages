@@ -40,6 +40,7 @@ pkgs.stdenv.mkDerivation rec {
 
   patches = [
     patches/bind_interface_outgoing.patch
+    patches/env_vars_macro.patch
     patches/service_name.patch
   ];
 

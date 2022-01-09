@@ -1,6 +1,6 @@
 diff -ruN squid-5.3.orig/configure squid-5.3/configure
 --- squid-5.3.orig/configure	2021-12-07 17:11:12.000000000 +0300
-+++ squid-5.3/configure	2022-01-09 18:26:18.504252770 +0300
++++ squid-5.3/configure	2022-01-09 18:50:47.227694005 +0300
 @@ -1172,12 +1172,12 @@
  # by default will actually change.
  # Use braces instead of parens because sh, perl, etc. also accept them.
@@ -19,3 +19,12 @@ diff -ruN squid-5.3.orig/configure squid-5.3/configure
  sharedstatedir='${prefix}/com'
  localstatedir='${prefix}/var'
  runstatedir='${localstatedir}/run'
+@@ -1191,7 +1191,7 @@
+ psdir='${docdir}'
+ libdir='${exec_prefix}/lib'
+ localedir='${datarootdir}/locale'
+-mandir='${datarootdir}/man'
++mandir='${prefix}/share/man'
+ 
+ ac_prev=
+ ac_dashdash=

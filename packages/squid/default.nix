@@ -40,6 +40,7 @@ pkgs.stdenv.mkDerivation rec {
 
   postInstall = ''
     mv $out/bin/purge $out/bin/squidpurge
+    mv $out/share/man/man1/purge.1 $out/share/man/man1/squidpurge.1
     rm -rf $out/var
   '';
 

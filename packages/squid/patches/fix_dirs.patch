@@ -1,0 +1,21 @@
+diff -ruN squid-5.3.orig/configure squid-5.3/configure
+--- squid-5.3.orig/configure	2021-12-07 17:11:12.000000000 +0300
++++ squid-5.3/configure	2022-01-09 18:26:18.504252770 +0300
+@@ -1172,12 +1172,12 @@
+ # by default will actually change.
+ # Use braces instead of parens because sh, perl, etc. also accept them.
+ # (The list follows the same order as the GNU Coding Standards.)
+-bindir='${exec_prefix}/bin'
+-sbindir='${exec_prefix}/sbin'
+-libexecdir='${exec_prefix}/libexec'
+-datarootdir='${prefix}/share'
++bindir='${prefix}/bin'
++sbindir='${prefix}/bin'
++libexecdir='${prefix}/libexec/${pname}'
++datarootdir='${prefix}/share/${pname}'
+ datadir='${datarootdir}'
+-sysconfdir='${prefix}/etc'
++sysconfdir='${prefix}/etc/${pname}'
+ sharedstatedir='${prefix}/com'
+ localstatedir='${prefix}/var'
+ runstatedir='${localstatedir}/run'

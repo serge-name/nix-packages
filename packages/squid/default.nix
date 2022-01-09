@@ -13,7 +13,7 @@ pkgs.stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ pkgs.pkg-config ];
   buildInputs = [
-    pkgs.perl pkgs.db pkgs.openssl pkgs.libcap
+    pkgs.perl pkgs.db pkgs.openssl pkgs.libcap pkgs.file
   ]; # pkgs.pam pkgs.expat pkgs.libxml2 pkgs.cyrus_sasl pkgs.openldap
 
   configureFlags = [
@@ -38,9 +38,15 @@ pkgs.stdenv.mkDerivation rec {
     "--enable-linux-netfilter"
   ];
 
+  postInstall = ''
+    mv $out/bin/purge $out/bin/squidpurge
+    rm -rf $out/var
+  '';
+
   patches = [
     patches/bind_interface_outgoing.patch
     patches/env_vars_macro.patch
+    patches/fix_dirs.patch
     patches/service_name.patch
   ];
 

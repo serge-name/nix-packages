@@ -18,7 +18,7 @@ pkgs.stdenv.mkDerivation rec {
     inherit sha256;
   };
 
-#  outputs = [ "out" "lib" "man" ]; # "dev" would only split ~20 kB
+  outputs = [ "out" "lib" "man" ]; # "dev" would only split ~20 kB
 
   nativeBuildInputs = [ pkgs.makeWrapper ];
 

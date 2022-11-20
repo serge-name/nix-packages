@@ -1,20 +1,20 @@
-{ pkgs, }:
+{ stable, ... }:
 let
   inherit (import ./_version.nix) version sha256;
 in
-pkgs.stdenv.mkDerivation rec {
+stable.stdenv.mkDerivation rec {
   pname = "squid";
   inherit version;
 
-  src = pkgs.fetchurl {
-    url = "http://www.squid-cache.org/Versions/v${pkgs.lib.versions.major version}/${pname}-${version}.tar.xz";
+  src = stable.fetchurl {
+    url = "http://www.squid-cache.org/Versions/v${stable.lib.versions.major version}/${pname}-${version}.tar.xz";
     inherit sha256;
   };
 
-  nativeBuildInputs = [ pkgs.pkg-config ];
+  nativeBuildInputs = [ stable.pkg-config ];
   buildInputs = [
-    pkgs.perl pkgs.db pkgs.openssl pkgs.libcap pkgs.file
-  ]; # pkgs.pam pkgs.expat pkgs.libxml2 pkgs.cyrus_sasl pkgs.openldap
+    stable.perl stable.db stable.openssl stable.libcap stable.file
+  ]; # stable.pam stable.expat stable.libxml2 stable.cyrus_sasl stable.openldap
 
   configureFlags = [
     "--disable-ipv6" # "--enable-ipv6"
@@ -54,7 +54,7 @@ pkgs.stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   meta = {
-    inherit (pkgs.squid.meta) description homepage license;
-    platforms = with pkgs.lib.platforms; linux;
+    inherit (stable.squid.meta) description homepage license;
+    platforms = with stable.lib.platforms; linux;
   };
 }

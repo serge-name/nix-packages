@@ -1,10 +1,10 @@
-{ pkgs, ... }:
+{ stable, ... }:
 let
   inherit (import ./_version.nix) version sha256;
-in pkgs.transcrypt.overrideAttrs (_: {
+in stable.transcrypt.overrideAttrs (_: {
   inherit version;
 
-  src = pkgs.fetchFromGitHub {
+  src = stable.fetchFromGitHub {
     owner = "elasticdog";
     repo = "transcrypt";
     rev = "v${version}";

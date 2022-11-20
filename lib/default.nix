@@ -1,26 +1,36 @@
 { lib, ... }:
 let
-  inherit (builtins) map attrNames getAttr hasAttr listToAttrs readDir;
-  inherit (lib) flatten;
+  inherit (builtins) listToAttrs;
+  inherit (lib) last length remove splitString take;
+  inherit (lib.filesystem) listFilesRecursive;
 in rec {
-  packageNames = dir:
-    attrNames (
-      lib.filterAttrs (k: v: v == "directory") (readDir dir)
-    );
+  pathParts = x:
+    remove "" (splitString "/" x);
 
-  forEachDir = f: dir:
-    map (x: f dir x) (packageNames dir);
+  basename = x:
+    last (pathParts x);
 
-  importPackageAsAttr = dir: name: args:
-  let
-    imported = import (dir + "/${name}") args;
-  in
-    if hasAttr "drvPath" imported
-    then [ { name = name; value = imported; } ]
-    else map (x: { name = x; value = (getAttr x imported); }) (attrNames imported);
+  pkgName = x:
+    let
+      parts = pathParts x;
+      pLen = length parts;
+    in
+    last (take (pLen - 1) parts);
+
+  importOrNull = x: args:
+    let
+      file = basename x;
+      pkg = pkgName x;
+    in
+    if file == "default.nix"
+    then { name = pkg; value = import x args; }
+    else null;
+
+  mkAttrs = x:
+    listToAttrs (remove null x);
 
   mkPackages = dir: args:
-    listToAttrs (
-      flatten (forEachDir (dir: name: importPackageAsAttr dir name args) dir)
-    );
+    mkAttrs (map
+      (x: importOrNull (toString x) args)
+      (listFilesRecursive dir));
 }

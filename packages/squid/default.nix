@@ -12,9 +12,10 @@ stable.stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ stable.pkg-config ];
-  buildInputs = [
-    stable.perl stable.db stable.openssl stable.libcap stable.file
-  ]; # stable.pam stable.expat stable.libxml2 stable.cyrus_sasl stable.openldap
+  buildInputs = with stable; [
+    perl db openssl libcap file
+    # pam expat libxml2 cyrus_sasl openldap
+  ];
 
   configureFlags = [
     "--disable-ipv6" # "--enable-ipv6"

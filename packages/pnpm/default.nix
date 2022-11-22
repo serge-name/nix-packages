@@ -1,0 +1,2 @@
+{ unstable, ... }:
+unstable.nodePackages.pnpm

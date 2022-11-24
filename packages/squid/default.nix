@@ -1,17 +1,18 @@
 { stable, ... }:
 let
   inherit (import ./_version.nix) version sha256;
+  inherit (stable) stdenv lib fetchurl pkg-config squid
 in
-stable.stdenv.mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "squid";
   inherit version;
 
-  src = stable.fetchurl {
-    url = "http://www.squid-cache.org/Versions/v${stable.lib.versions.major version}/${pname}-${version}.tar.xz";
+  src = fetchurl {
+    url = "http://www.squid-cache.org/Versions/v${lib.versions.major version}/${pname}-${version}.tar.xz";
     inherit sha256;
   };
 
-  nativeBuildInputs = [ stable.pkg-config ];
+  nativeBuildInputs = [ pkg-config ];
   buildInputs = with stable; [
     perl db openssl libcap file
     # pam expat libxml2 cyrus_sasl openldap
@@ -55,7 +56,7 @@ stable.stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   meta = {
-    inherit (stable.squid.meta) description homepage license;
-    platforms = with stable.lib.platforms; linux;
+    inherit (squid.meta) description homepage license;
+    platforms = with lib.platforms; linux;
   };
 }

@@ -1,7 +1,7 @@
 { stable, ... }:
 let
   inherit (import ./_version.nix) version sha256;
-  inherit (stable) stdenv lib fetchurl pkg-config squid
+  inherit (stable) stdenv lib fetchurl pkg-config squid;
 in
 stdenv.mkDerivation rec {
   pname = "squid";

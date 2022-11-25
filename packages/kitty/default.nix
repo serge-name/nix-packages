@@ -1,19 +1,25 @@
 { stable, ... }:
 let
-  inherit (stable) lib writeShellScript kitty glibcLocales mesa_drivers;
+  inherit (stable) stdenv writeShellScript kitty glibcLocales mesa_drivers;
+
+  wrapper = writeShellScript "kitty-wrapper" ''
+    export LOCALE_ARCHIVE=''${LOCALE_ARCHIVE:-'${glibcLocales}/lib/locale/locale-archive'}
+    exec -a "$0" "${kitty}/bin/kitty" "$@"
+  '';
 
   script = writeShellScript "kitty-opengl-driver-path" ''
     echo "${mesa_drivers}"
   '';
 
-  patchWrapper = let
-    pattern = ''wrapProgram "$out/bin/kitty"'';
-  in lib.replaceStrings
-    [ pattern ]
-    [ ''${pattern} --set-default LOCALE_ARCHIVE "${glibcLocales}/lib/locale/locale-archive"'' ];
+in stdenv.mkDerivation {
+  inherit (kitty) pname version meta;
 
-in kitty.overrideDerivation(old: {
-  installPhase = (patchWrapper old.installPhase) + ''
-    ln -s ${script} "$out/bin/${script.name}"
+  dontUnpack = true;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    find ${kitty} -mindepth 1 -maxdepth 1 -not -name bin |xargs -n1 ln -st $out
+    ln -sT ${wrapper} $out/bin/kitty
+    ln -sT ${script} $out/bin/${script.name}
   '';
-})
+}

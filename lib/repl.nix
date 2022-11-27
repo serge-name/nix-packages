@@ -7,7 +7,7 @@ let
 in
 mkApp {
   drv = writeShellScriptBin "repl" ''
-    confnix=$(mktemp)
+    confnix=$(mktemp -t nix-repl-flake-is-fl-var.XXXXXXXXXXXX)
     flake_dir="$(git rev-parse --show-toplevel || pwd)"
     cmd="{ fl = builtins.getFlake (toString $flake_dir); }"
     echo $cmd >$confnix

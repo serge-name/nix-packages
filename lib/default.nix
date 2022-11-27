@@ -29,7 +29,7 @@ in rec {
   mkAttrs = x:
     listToAttrs (remove null x);
 
-  mkPackages = dir: args:
+  mkFlakeParts = dir: args:
     mkAttrs (map
       (x: importOrNull (toString x) args)
       (listFilesRecursive dir));

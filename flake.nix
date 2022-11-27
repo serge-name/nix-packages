@@ -13,6 +13,6 @@
     unstable = inputs.unstable.legacyPackages.${system};
     myLib = import ./lib { inherit (stable) lib; };
   in {
-    packages.${system} = myLib.mkPackages ./packages { inherit stable unstable; };
+    packages.${system} = myLib.mkFlakeParts ./packages { inherit stable unstable; };
   };
 }

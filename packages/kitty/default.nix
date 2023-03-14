@@ -1,6 +1,6 @@
-{ stable, ... }:
+{ unstable, ... }:
 let
-  inherit (stable) stdenv writeShellScript kitty glibcLocales mesa_drivers;
+  inherit (unstable) stdenv writeShellScript kitty glibcLocales mesa_drivers;
 
   wrapper = writeShellScript "kitty-wrapper" ''
     export LOCALE_ARCHIVE=''${LOCALE_ARCHIVE:-'${glibcLocales}/lib/locale/locale-archive'}

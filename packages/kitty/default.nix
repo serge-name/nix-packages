@@ -6,7 +6,7 @@ let
   mesa_lib = mesa_drivers + "/lib";
   mesa_dri = mesa_lib + "/dri";
 
-  foo = varname: path: ''
+  appendEnvColon = varname: path: ''
     if ! ${grep} -qF "${path}" <<< "''${${varname}:-}"; then
       export ${varname}="${path}''${${varname}:+:}''${${varname}:-}"
     fi
@@ -14,8 +14,8 @@ let
 
   wrapper = writeShellScript "kitty-wrapper" ''
     export LOCALE_ARCHIVE=''${LOCALE_ARCHIVE:-'${glibcLocales}/lib/locale/locale-archive'}
-    ${foo "LD_LIBRARY_PATH" mesa_lib}
-    ${foo "LIBGL_DRIVERS_PATH" mesa_dri}
+    ${appendEnvColon "LD_LIBRARY_PATH" mesa_lib}
+    ${appendEnvColon "LIBGL_DRIVERS_PATH" mesa_dri}
     exec -a "$0" "${kitty}/bin/kitty" "$@"
   '';
 

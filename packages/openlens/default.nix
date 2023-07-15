@@ -1,6 +1,6 @@
 { unstable, ... }:
 let
-  inherit (unstable) appimageTools writeShellScript kubernetes-helm kubectl bash coreutils glibcLocales;
+  inherit (unstable) appimageTools writeShellScript kubernetes-helm kubectl bash coreutils glibcLocales mesa_drivers gnugrep;
   inherit (unstable.lib) getName;
   inherit (unstable.openlens) name src meta;
 
@@ -32,6 +32,16 @@ let
 
   mkRoBind = from: to: "--ro-bind ${from} ${to}";
   mkBindWrappers = map (x: mkRoBind x.outPath "${resources}/${x.name}");
+
+  grep = gnugrep + "/bin/grep";
+  mesa_lib = mesa_drivers + "/lib";
+  mesa_dri = mesa_lib + "/dri";
+
+  appendEnvColon = varname: path: ''
+    if ! ${grep} -qF "${path}" <<< "''${${varname}:-}"; then
+      export ${varname}="${path}''${${varname}:+:}''${${varname}:-}"
+    fi
+  '';
 
 in appimageTools.wrapType2 {
   inherit name src meta;
@@ -68,6 +78,8 @@ in appimageTools.wrapType2 {
     cat >$out/bin/${pname} <<__
     #!${bash}/bin/bash
     export LOCALE_ARCHIVE="${glibcLocales}/lib/locale/locale-archive"
+    ${appendEnvColon "LD_LIBRARY_PATH" mesa_lib}
+    ${appendEnvColon "LIBGL_DRIVERS_PATH" mesa_dri}
     export SHELL="${bash}/bin/bash"
     source "$configDir/environment_k8s_proxy"
     chmod -R u+w "$configDir/extensions" >& /dev/null

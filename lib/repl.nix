@@ -3,15 +3,13 @@
 { stable, inputs, ... }:
 let
   inherit (inputs.flake-utils.lib) mkApp;
-  inherit (stable) writeShellScriptBin;
+  inherit (stable) writeShellScriptBin git;
 in
 mkApp {
   drv = writeShellScriptBin "repl" ''
-    confnix=$(mktemp -t nix-repl-flake-is-fl-var.XXXXXXXXXXXX)
-    flake_dir="$(git rev-parse --show-toplevel || pwd)"
-    cmd="{ fl = builtins.getFlake (toString $flake_dir); }"
-    echo $cmd >$confnix
-    trap "rm -f $confnix" EXIT
-    nix repl $confnix
+    set -euC -o pipefail
+    flake_dir=$("${git}/bin/git" rev-parse --show-toplevel || pwd)
+    cmd='{ fl = builtins.getFlake (builtins.toString "'"$flake_dir"'"); }'
+    exec nix repl --expr "$cmd"
   '';
 }

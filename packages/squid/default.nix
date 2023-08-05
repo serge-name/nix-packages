@@ -9,6 +9,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "http://www.squid-cache.org/Versions/v${lib.versions.major version}/${pname}-${version}.tar.xz";
+    # url = "https://ftp.nluug.nl/internet/squid/${pname}-${version}.tar.xz";
     inherit sha256;
   };
 

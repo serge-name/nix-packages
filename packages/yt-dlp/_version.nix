@@ -1,5 +1,5 @@
 {
-  version = "master-20230715";
-  rev = "131d132da5c98c6c78bd7eed4b37f4458561b3d9";
-  sha256 = "sha256-Uln6vvV635fQvK+b7HWkgTwbB1dWHIYraECIcpkkPNM=";
+  version = "master-20230812";
+  rev = "339c339fec095ff4141b20e6aa83629117fb26df";
+  sha256 = "sha256-qrTKVgaJ44tOKPJ1y/Lz5OXvtSSFhfG8ev1LdA8EdeE=";
 }
